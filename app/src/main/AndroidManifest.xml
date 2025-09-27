@@ -22,6 +22,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".Screen_registration"></activity>
+        <activity android:name=".MainScreen"></activity>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
 
