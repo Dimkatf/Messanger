@@ -12,9 +12,27 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.json.JSONObject;
+import java.io.IOException;
+
+
 public class Screen_registration extends AppCompatActivity {
     private EditText phone_numberEdit, userNameEdit, passwordEdit;
     private Button backBtn, registrationBtn;
+
+    private static final String BASE_URL = "http://10.0.2.2:8080/api/register";
+    private OkHttpClient client = new OkHttpClient();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,8 +59,52 @@ public class Screen_registration extends AppCompatActivity {
 
             if(phone_number.isEmpty() || userName.isEmpty() || password.isEmpty())
                 toast("Заполните все поля!");
+            else {
+                registerUser(userName, phone_number, password);
+            }
         });
 
+    }
+
+    private void registerUser(String name, String phone, String password){
+        try{
+            JSONObject json = new JSONObject();
+            json.put("name", name);
+            json.put("phone", phone);
+            json.put("password", password);
+
+            RequestBody body = RequestBody.create(
+                    json.toString(),
+                    MediaType.parse("application/json; charset=utf-8")
+            );
+
+            Request request = new Request.Builder()
+                    .url(BASE_URL)
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    runOnUiThread(() -> toast("Ошибка подключения: " + e.getMessage()));
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String responseBody = response.body().string();
+                    runOnUiThread(() -> {
+                        if (response.isSuccessful()) {
+                            toast("Пользователь успешно создан");
+                            finish();
+                        } else {
+                            toast("Ошибка: " + responseBody);
+                        }
+                    });
+                }
+            });
+        } catch (Exception e){
+            toast("Ошибка: " + e.getMessage());
+        }
     }
     private void toast(String message){
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
