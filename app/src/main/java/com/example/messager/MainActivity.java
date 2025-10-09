@@ -13,8 +13,6 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import java.util.Map;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -53,11 +51,10 @@ public class MainActivity extends AppCompatActivity {
             if(numberphone.isEmpty() || password.isEmpty())
                 toast("Заполните все поля!");
             else {
-               loginUser(numberphone, password);
+                loginUser(numberphone, password);
             }
         });
     }
-
 
     private void loginUser(String phone, String password){
         try {
@@ -75,19 +72,20 @@ public class MainActivity extends AppCompatActivity {
                         String result = response.body();
 
                         if(result.startsWith("LOGIN_SUCCESS")) {
-                            // Парсим ответ: LOGIN_SUCCESS|ID|NAME|PHONE
                             String[] parts = result.split("\\|");
                             if(parts.length >= 4) {
                                 Long userId = Long.parseLong(parts[1]);
                                 String userName = parts[2];
                                 String userPhone = parts[3];
 
+                                saveUserData(userId, userName, phone);
+
                                 toast("Добро пожаловать, " + userName + "!");
 
                                 Intent intent = new Intent(MainActivity.this, MainScreen.class);
                                 intent.putExtra("user_id", userId);
                                 intent.putExtra("user_name", userName);
-                                intent.putExtra("user_phone", userPhone);
+                                intent.putExtra("user_phone", phone);
                                 startActivity(intent);
 
                                 numberPhoneEdit.setText("");
@@ -113,12 +111,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void saveUserData(String phone){
+    private void saveUserData(Long userId, String userName, String userPhone){
         getSharedPreferences("user_prefs", MODE_PRIVATE)
                 .edit()
-                .putString("user_phone", phone)
+                .putLong("user_id", userId)
+                .putString("user_name", userName)
+                .putString("user_phone", userPhone)
                 .apply();
+
+        Log.d("SAVE", "✅ Saved to SharedPreferences:");
+        Log.d("SAVE", "   User ID: " + userId);
+        Log.d("SAVE", "   User Name: " + userName);
+        Log.d("SAVE", "   User Phone: " + userPhone);
     }
+
     private void testConnection() {
         Call<String> call = apiService.testConnection();
         call.enqueue(new Callback<String>() {
@@ -137,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
     private void toast(String message){
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }

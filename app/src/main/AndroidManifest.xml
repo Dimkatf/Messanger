@@ -24,7 +24,9 @@
         </activity>
         <activity android:name=".Screen_registration"></activity>
         <activity android:name=".MainScreen"></activity>
+        <activity android:name=".ChangeDataScreen"></activity>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
 </manifest>
