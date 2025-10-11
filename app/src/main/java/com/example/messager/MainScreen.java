@@ -25,6 +25,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainScreen extends AppCompatActivity {
     private Button exitBtn;
+    private Button chatsBtn;
     private Long userId;
     private String userName;
     private String userPhone;
@@ -33,8 +34,8 @@ public class MainScreen extends AppCompatActivity {
     private ImageView userPhotoView;
     private SharedPreferences prefs;
     private ApiService apiService;
-   // private static final String BASE_URL = "http://192.168.1.36:8080/";
-   private static final String BASE_URL = "http://10.0.2.2:8080/";
+    //private static final String BASE_URL = "http://192.168.1.36:8080/";
+    private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +46,13 @@ public class MainScreen extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
+        });
+
+        chatsBtn = findViewById(R.id.chatsMainScreen);
+        chatsBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, Chats.class);
+            startActivity(intent);
+            finish();
         });
         prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
 
@@ -82,7 +90,7 @@ public class MainScreen extends AppCompatActivity {
         }
 
         exitBtn.setOnClickListener(v -> {
-            finish();
+            logoutUser();
         });
 
         changeBtn.setOnClickListener(v -> {
@@ -148,4 +156,18 @@ public class MainScreen extends AppCompatActivity {
 
     private void loadUserMessages(Long id) {
     }
+    private void logoutUser(){
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        prefs.edit()
+                .remove("user_id")
+                .remove("user_name")
+                .remove("user_photo")
+                .remove("user_photo_uri")
+                .clear()
+                .apply();
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
 }

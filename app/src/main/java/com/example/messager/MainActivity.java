@@ -1,6 +1,7 @@
 package com.example.messager;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -21,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private ApiService apiService;
     private Button registrBtn, loginBtn;
     private EditText numberPhoneEdit, passwordEdit;
+    private SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +34,13 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        if(isUserLoggedIn()){
+            goToMainScreen();
+            return;
+        }
+        setContentView(R.layout.activity_main );
         apiService = ApiClient.getClient().create(ApiService.class);
         testConnection();
 
@@ -78,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
                                 String userName = parts[2];
                                 String userPhone = parts[3];
 
-                                saveUserData(userId, userName, phone);
+                                saveUserData(userId, userName, userPhone);
+                                goToMainScreen();
 
                                 toast("Добро пожаловать, " + userName + "!");
 
@@ -142,6 +152,25 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Connection failed", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+    private boolean isUserLoggedIn(){
+        String userPhone = prefs.getString("user_phone", "");
+        String userName = prefs.getString("user_name", "");
+        return !userPhone.isEmpty() && !userName.isEmpty();
+    }
+    private void goToMainScreen(){
+        Intent intent = new Intent(this, MainScreen.class);
+        Long userId = prefs.getLong("user_id", - 1);
+        String userPhone = prefs.getString("user_phone", "");
+        String userName = prefs.getString("user_name", "");
+
+        intent.putExtra("user_id", userId);
+        intent.putExtra("user_name", userName);
+        intent.putExtra("user_phone", userPhone);
+        startActivity(intent);
+        finish();
+
+
     }
 
     private void toast(String message){
