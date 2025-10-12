@@ -39,8 +39,8 @@ public class Chats extends AppCompatActivity {
         chatsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         List<Chat> chatList = new ArrayList<>();
-        chatList.add(new Chat("Избранное", "Важные контакты", ""));
-        chatList.add(new Chat("Ярик", "Че, идем бухать?", "10:11"));
+        chatList.add(new Chat("Избранное", "Важные контакты", "", true));
+        chatList.add(new Chat("Ярик", "Че, идем бухать?", "10:11", false));
 
         chatAdapter = new ChatAdapter(chatList);
         chatsRecyclerView.setAdapter(chatAdapter);

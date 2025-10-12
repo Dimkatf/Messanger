@@ -26,6 +26,7 @@
         <activity android:name=".MainScreen"></activity>
         <activity android:name=".ChangeDataScreen"></activity>
         <activity android:name=".Chats"></activity>
+        <activity android:name=".FavoritesScreen"></activity>
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

@@ -34,8 +34,8 @@ public class MainScreen extends AppCompatActivity {
     private ImageView userPhotoView;
     private SharedPreferences prefs;
     private ApiService apiService;
-    //private static final String BASE_URL = "http://192.168.1.36:8080/";
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://192.168.1.36:8080/";
+    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

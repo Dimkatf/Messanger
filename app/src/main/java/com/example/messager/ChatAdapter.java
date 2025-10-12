@@ -1,5 +1,6 @@
 package com.example.messager;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,15 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         holder.chatName.setText(chat.getName());
         holder.lastMessage.setText(chat.getLastMessage());
         holder.time.setText(chat.getTime());
+
+        holder.itemView.setOnClickListener(v -> {
+            if(chat.getName().equals("Избранное")){
+                Intent intent = new Intent(v.getContext(), FavoritesScreen.class);
+                v.getContext().startActivity(intent);
+            }
+            else android.widget.Toast.makeText(v.getContext(), "Чат: " + chat.getName(), android.widget.Toast.LENGTH_SHORT).show();
+        });
+
     }
     @Override
     public int getItemCount(){
