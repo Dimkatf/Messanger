@@ -1,7 +1,6 @@
 package com.example.messager;
 
 public class User {
-
     private Long id;
     private String name;
     private String phone;

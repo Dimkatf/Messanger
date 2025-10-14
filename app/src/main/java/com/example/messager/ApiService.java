@@ -1,5 +1,6 @@
 package com.example.messager;
 
+import java.util.List;
 import java.util.Map;
 
 import okhttp3.MultipartBody;
@@ -53,6 +54,15 @@ public interface ApiService {
         public String getNewName() { return newName; }
         public void setNewName(String newName) { this.newName = newName; }
     }
+
+    @GET("api/get-messages")
+    Call<List<ChatMessage>> getMessages(@Query("chatId") String chatId);
+
+    @POST("api/send-message")
+    Call<ApiResponse> sendMessage(@Body Map<String, String> request);
+
+    @GET("api/get-last-message")
+    Call<ApiResponse> getLastMessage(@Query("chatId") String chatId);
 
 }
 

@@ -88,7 +88,7 @@ public class ChangeDataScreen extends AppCompatActivity {
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
-                .addConverterFactory(ScalarsConverterFactory.create()) // ДОБАВЬТЕ ЭТУ СТРОЧКУ ПЕРВОЙ
+                .addConverterFactory(ScalarsConverterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         apiService = retrofit.create(ApiService.class);
@@ -128,7 +128,6 @@ public class ChangeDataScreen extends AppCompatActivity {
                             prefs.edit().putString("user_name", newName).apply();
                             toast("Имя изменено!");
 
-                            // ★★★★ ВОЗВРАЩАЕМ РЕЗУЛЬТАТ НА ГЛАВНЫЙ ЭКРАН ★★★★
                             Intent resultIntent = new Intent();
                             resultIntent.putExtra("new_name", newName);
                             setResult(RESULT_OK, resultIntent);

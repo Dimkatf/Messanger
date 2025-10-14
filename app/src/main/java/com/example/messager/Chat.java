@@ -16,4 +16,5 @@ public class Chat {
     public String getLastMessage() {return lastMessage;}
     public String getTime() {return time;}
     public boolean isFavorite() { return isFavorite; }
+    public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
 }

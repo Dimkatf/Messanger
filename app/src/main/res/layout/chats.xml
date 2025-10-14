@@ -5,9 +5,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Кнопка профиля -->
-
-    <!-- Список чатов -->
     <Button
         android:id="@+id/profile"
         android:layout_width="wrap_content"
