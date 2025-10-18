@@ -46,7 +46,7 @@ public class FavoritesScreen extends AppCompatActivity {
         messagesRecyclerView = findViewById(R.id.messagesRecyclerView);
 
         messagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        messageAdapter = new MessageAdapter(messageList);
+        messageAdapter = new MessageAdapter(messageList, this);
         messagesRecyclerView.setAdapter(messageAdapter);
 
         exitFavoritesBtn.setOnClickListener(v -> finish());
@@ -122,6 +122,29 @@ public class FavoritesScreen extends AppCompatActivity {
             @Override
             public void onFailure(Call<List<ChatMessage>> call, Throwable t) {
                 Toast.makeText(FavoritesScreen.this, "Ошибка загрузки: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    public void deleteMessage(Long messageId, int position) {
+        Call<ApiResponse> call = apiService.deleteMessage(messageId);
+        call.enqueue(new Callback<ApiResponse>() {
+            @Override
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    if ("success".equals(apiResponse.getStatus())) {
+                        messageList.remove(position);
+                        messageAdapter.notifyItemRemoved(position);
+                        messageAdapter.notifyItemRangeChanged(position, messageList.size() - position);
+
+                        Toast.makeText(FavoritesScreen.this, "Сообщение удалено", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                Toast.makeText(FavoritesScreen.this, "Ошибка удаления", Toast.LENGTH_SHORT).show();
             }
         });
     }

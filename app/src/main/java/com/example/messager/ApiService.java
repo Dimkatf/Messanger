@@ -8,6 +8,7 @@ import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
 import retrofit2.http.Multipart;
@@ -63,6 +64,9 @@ public interface ApiService {
 
     @GET("api/get-last-message")
     Call<ApiResponse> getLastMessage(@Query("chatId") String chatId);
+
+    @DELETE("api/delete-message")
+    Call<ApiResponse> deleteMessage(@Query("messageId") Long messageId);
 
 }
 
