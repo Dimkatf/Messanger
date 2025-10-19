@@ -18,8 +18,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     private List<Chat> chatList;
     private Context context;
     private ApiService apiService;
-    //private static final String BASE_URL = "http://192.168.1.36:8080/";
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://192.168.1.36:8080/";
+    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     public ChatAdapter(List<Chat> chatList, Context context) {
         this.chatList = chatList;

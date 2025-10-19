@@ -68,5 +68,8 @@ public interface ApiService {
     @DELETE("api/delete-message")
     Call<ApiResponse> deleteMessage(@Query("messageId") Long messageId);
 
+    @PUT("api/update_message")
+    Call<ResponseBody> updateMessage(@Body UpdateMessageRequest request);
+
 }
 

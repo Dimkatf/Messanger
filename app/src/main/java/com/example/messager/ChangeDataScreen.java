@@ -44,8 +44,8 @@ public class ChangeDataScreen extends AppCompatActivity {
     private String userName;
     private ApiService apiService;
     private SharedPreferences prefs;
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
-    //private static final String BASE_URL = "http://192.168.1.36:8080/";
+    //private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://192.168.1.36:8080/";
 
     private ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),

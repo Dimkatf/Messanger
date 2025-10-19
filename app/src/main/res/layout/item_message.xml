@@ -17,7 +17,8 @@
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
         android:layout_marginEnd="16dp"
-        android:elevation="2dp">
+        android:elevation="2dp"
+        android:orientation="vertical">
 
         <TextView
             android:id="@+id/messageText"
@@ -26,6 +27,23 @@
             android:text="Текст сообщения"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/editedText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="изменено"
+                android:textSize="10sp"
+                android:textColor="#CCCCCC"
+                android:visibility="gone" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </LinearLayout>

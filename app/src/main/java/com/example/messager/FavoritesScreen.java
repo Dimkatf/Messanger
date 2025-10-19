@@ -26,8 +26,8 @@ public class FavoritesScreen extends AppCompatActivity {
     private MessageAdapter messageAdapter;
     private List<ChatMessage> messageList = new ArrayList<>();
     private ApiService apiService;
-    //private static final String BASE_URL = "http://192.168.1.36:8080/";
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://192.168.1.36:8080/";
+    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +46,7 @@ public class FavoritesScreen extends AppCompatActivity {
         messagesRecyclerView = findViewById(R.id.messagesRecyclerView);
 
         messagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        messageAdapter = new MessageAdapter(messageList, this);
+        messageAdapter = new MessageAdapter(messageList, this, apiService);
         messagesRecyclerView.setAdapter(messageAdapter);
 
         exitFavoritesBtn.setOnClickListener(v -> finish());
