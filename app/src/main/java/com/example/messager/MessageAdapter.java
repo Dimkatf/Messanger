@@ -49,7 +49,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
 
         holder.itemView.setOnLongClickListener(v -> {
             new AlertDialog.Builder(activity)
-                    .setItems(new String[]{"Изменить", "Удалить"}, (dialog, which) -> {
+                    .setItems(new String[]{"Изменить", "Удалить", "Закрепить", "Скопировать"}, (dialog, which) -> {
                         switch (which){
                             case 0:
                                 showEditDialog(message, position);

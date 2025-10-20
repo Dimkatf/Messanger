@@ -70,6 +70,9 @@ public interface ApiService {
 
     @PUT("api/update_message")
     Call<ResponseBody> updateMessage(@Body UpdateMessageRequest request);
+    @DELETE("api/delete_user")
+    Call<String> deleteUserById(@Query("userId") Long userId);
+
 
 }
 

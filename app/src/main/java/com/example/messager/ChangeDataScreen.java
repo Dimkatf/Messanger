@@ -1,9 +1,11 @@
 package com.example.messager;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -27,6 +29,7 @@ import android.graphics.BitmapFactory;
 
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import okhttp3.MediaType;
@@ -42,6 +45,8 @@ public class ChangeDataScreen extends AppCompatActivity {
     private String selectedImageUri;
     private Button changeBtn;
     private String userName;
+    private Button deleteAccount;
+    private Button exitByAccount;
     private ApiService apiService;
     private SharedPreferences prefs;
     //private static final String BASE_URL = "http://10.0.2.2:8080/";
@@ -74,6 +79,22 @@ public class ChangeDataScreen extends AppCompatActivity {
             return insets;
         });
 
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(ScalarsConverterFactory.create()) // Должен быть ПЕРВЫМ
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        apiService = retrofit.create(ApiService.class);
+        deleteAccount = findViewById(R.id.deleteAccount);
+        deleteAccount.setOnClickListener(v -> {
+            showDeleteConfirmationDialog();
+        });
+
+        exitByAccount = findViewById(R.id.exitByAccount);
+        exitByAccount.setOnClickListener(v -> {
+            logoutUser();
+        });
+
 
         prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
 
@@ -86,12 +107,12 @@ public class ChangeDataScreen extends AppCompatActivity {
         userName = prefs.getString("user_name", "");
         changeNameText.setText(userName);
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(ScalarsConverterFactory.create())
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        apiService = retrofit.create(ApiService.class);
+//        Retrofit retrofit = new Retrofit.Builder()
+//                .baseUrl(BASE_URL)
+//                .addConverterFactory(ScalarsConverterFactory.create())
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .build();
+//        apiService = retrofit.create(ApiService.class);
 
         String phone = prefs.getString("user_phone", "");
         if (!phone.isEmpty()) {
@@ -152,6 +173,19 @@ public class ChangeDataScreen extends AppCompatActivity {
                 }
             });
         });
+    }
+    private void logoutUser(){
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        prefs.edit()
+                .remove("user_id")
+                .remove("user_name")
+                .remove("user_photo")
+                .remove("user_photo_uri")
+                .clear()
+                .apply();
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     private void uploadPhotoToServer(Uri imageUri) {
@@ -256,7 +290,66 @@ public class ChangeDataScreen extends AppCompatActivity {
         return byteBuffer.toByteArray();
     }
 
+
+    private void clearUserData() {
+        SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        preferences.edit().clear().apply();
+    }
+
+
+
     private void toast(String message){
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Удаление аккаунта")
+                .setMessage("Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.")
+                .setPositiveButton("Удалить", (dialog, which) -> {
+                    deleteUserById();
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+
+    private void deleteUserById() {
+        Long userId = prefs.getLong("user_id", 0L);
+        if (userId == 0L) {
+            toast("ID пользователя не найден");
+            return;
+        }
+        Call<String> call = apiService.deleteUserById(userId);
+        call.enqueue(new Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    String responseBody = response.body();
+
+                    toast("Пользователь успешно удалён!");
+                    clearUserData();
+                    Intent intent = new Intent(ChangeDataScreen.this, MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    try {
+                        String errorBody = response.errorBody().string();
+                        toast("Ошибка: " + errorBody);
+                    } catch (IOException e) {
+                        toast("Ошибка сервера");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                toast("Ошибка сети: " + t.getMessage());
+            }
+        });
+    }
+
+    private Long getCurrentUserId() {
+        return prefs.getLong("user_id", 0L);
     }
 }

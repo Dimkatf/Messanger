@@ -24,7 +24,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainScreen extends AppCompatActivity {
-    private Button exitBtn;
+    //private Button exitBtn;
     private Button chatsBtn;
     private Long userId;
     private String userName;
@@ -62,7 +62,7 @@ public class MainScreen extends AppCompatActivity {
                 .build();
         apiService = retrofit.create(ApiService.class);
 
-        exitBtn = findViewById(R.id.exitByAccount);
+        //exitBtn = findViewById(R.id.exitByAccount);
         changeBtn = findViewById(R.id.changeBtn);
         nameText = findViewById(R.id.name);
         userPhotoView = findViewById(R.id.imageView);
@@ -88,11 +88,6 @@ public class MainScreen extends AppCompatActivity {
         if (userPhone != null && !userPhone.isEmpty()) {
             loadUserPhotoFromServer(userPhone);
         }
-
-        exitBtn.setOnClickListener(v -> {
-            logoutUser();
-        });
-
         changeBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChangeDataScreen.class);
             startActivityForResult(intent, 1);
@@ -155,19 +150,6 @@ public class MainScreen extends AppCompatActivity {
     }
 
     private void loadUserMessages(Long id) {
-    }
-    private void logoutUser(){
-        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        prefs.edit()
-                .remove("user_id")
-                .remove("user_name")
-                .remove("user_photo")
-                .remove("user_photo_uri")
-                .clear()
-                .apply();
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish();
     }
 
 }
