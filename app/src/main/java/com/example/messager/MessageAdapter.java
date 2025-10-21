@@ -1,10 +1,12 @@
 package com.example.messager;
 
 import android.app.AlertDialog;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -43,9 +45,17 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         ChatMessage message = messageList.get(position);
         holder.messageText.setText(message.getText());
 
-        if(message.isChange())
+        if(message.isEdited()) {
             holder.editedText.setVisibility(View.VISIBLE);
-        else holder.editedText.setVisibility(View.GONE);
+            // Текст слева, "Изменено" справа
+            holder.messageText.setGravity(Gravity.START);
+            holder.editedText.setGravity(Gravity.END);
+        } else {
+            holder.editedText.setVisibility(View.GONE);
+            // Текст справа
+            holder.messageText.setGravity(Gravity.END);
+        }
+
 
         holder.itemView.setOnLongClickListener(v -> {
             new AlertDialog.Builder(activity)
@@ -99,7 +109,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
                 if (response.isSuccessful()) {
                     ChatMessage message = messageList.get(position);
                     message.setText(newText);
-                    message.setChange(true);
+                    message.setEdited(true);
                     notifyItemChanged(position);
                     Toast.makeText(activity, "Сообщение обновлено", Toast.LENGTH_SHORT).show();
                 } else {

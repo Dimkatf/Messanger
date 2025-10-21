@@ -11,6 +11,7 @@
         android:layout_weight="1" />
 
     <LinearLayout
+        android:id="@+id/bubbleLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/message_bubble_modern"
@@ -26,24 +27,18 @@
             android:layout_height="wrap_content"
             android:text="Текст сообщения"
             android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:maxWidth="280dp" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/editedText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="end">
-
-            <TextView
-                android:id="@+id/editedText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="изменено"
-                android:textSize="10sp"
-                android:textColor="#CCCCCC"
-                android:visibility="gone" />
-
-        </LinearLayout>
+            android:text="Изменено"
+            android:textSize="10sp"
+            android:textColor="#CCCCCC"
+            android:maxLines="1"
+            android:visibility="gone" />
 
     </LinearLayout>
 </LinearLayout>

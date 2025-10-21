@@ -115,12 +115,19 @@ public class FavoritesScreen extends AppCompatActivity {
                         messagesRecyclerView.scrollToPosition(messageList.size() - 1);
                     }
                 } else {
+                    try {
+                        String errorBody = response.errorBody().string();
+                        System.out.println("❌ Server error: " + response.code() + " - " + errorBody);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     Toast.makeText(FavoritesScreen.this, "Ошибка сервера: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<List<ChatMessage>> call, Throwable t) {
+                System.out.println("❌ Network error: " + t.getMessage());
                 Toast.makeText(FavoritesScreen.this, "Ошибка загрузки: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
