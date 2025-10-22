@@ -63,7 +63,7 @@ public interface ApiService {
     Call<ApiResponse> sendMessage(@Body Map<String, String> request);
 
     @GET("api/get-last-message")
-    Call<ApiResponse> getLastMessage(@Query("chatId") String chatId);
+    Call<Map<String, String>> getLastMessage(@Query("chatId") String chatId);
 
     @DELETE("api/delete-message")
     Call<ApiResponse> deleteMessage(@Query("messageId") Long messageId);

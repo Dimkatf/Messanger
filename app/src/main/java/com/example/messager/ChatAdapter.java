@@ -6,18 +6,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import java.util.List;
 
 public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder> {
-    private List<Chat> chatList;
+    public List<Chat> chatList;
     private Context context;
     private ApiService apiService;
     private SessionManager sessionManager;
@@ -38,9 +38,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     @NonNull
     @Override
     public ChatViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // ИСПРАВЛЕНИЕ: нужно вернуть реальный ViewHolder, а не null
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_chat, parent, false); // Убедитесь, что item_chat существует
+                .inflate(R.layout.item_chat, parent, false);
         return new ChatViewHolder(view);
     }
 
@@ -48,17 +47,17 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
         Chat chat = chatList.get(position);
         holder.chatName.setText(chat.getName());
-        holder.time.setText(chat.getTime());
 
-        if (chat.getName().equals("Избранное")) {
-            String userId = sessionManager.getUserIdString();
-            if (userId != null && !userId.equals("-1")) {
-                loadLastMessageForFavorites(holder.lastMessage, userId);
-            } else {
-                holder.lastMessage.setText("Нет сообщений");
-            }
+        if (chat.getTime() != null && !chat.getTime().isEmpty()) {
+            holder.time.setText(chat.getTime());
         } else {
+            holder.time.setText("");
+        }
+
+        if (chat.getLastMessage() != null && !chat.getLastMessage().isEmpty()) {
             holder.lastMessage.setText(chat.getLastMessage());
+        } else {
+            holder.lastMessage.setText("Нет сообщений");
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -75,44 +74,39 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         });
     }
 
-    private void loadLastMessageForFavorites(TextView lastMessageView, String userId) {
-        Call<ApiResponse> call = apiService.getLastMessage("favorites_" + userId);
-        call.enqueue(new Callback<ApiResponse>() {
-            @Override
-            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse apiResponse = response.body();
-                    if ("success".equals(apiResponse.getStatus())) {
-                        String text = apiResponse.getMessage();
-                        lastMessageView.setText(text);
-                    } else {
-                        lastMessageView.setText("Нет сообщений");
-                    }
-                } else {
-                    lastMessageView.setText("Нет сообщений");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ApiResponse> call, Throwable t) {
-                lastMessageView.setText("Нет сообщений");
-            }
-        });
-    }
-
     @Override
     public int getItemCount() {
         return chatList.size();
     }
 
-    public void updateLastMessageForFavorites(String newMessage) {
+    public void updateFavoritesLastMessage(String newMessage, String timestamp) {
         for (int i = 0; i < chatList.size(); i++) {
             Chat chat = chatList.get(i);
             if (chat.getName().equals("Избранное")) {
+
                 chat.setLastMessage(newMessage);
+
+                if (timestamp != null && !timestamp.isEmpty() && !"Нет сообщений".equals(newMessage)) {
+                    String formattedTime = formatTime(timestamp);
+                    chat.setTime(formattedTime);
+                } else chat.setTime("");
+
                 notifyItemChanged(i);
                 break;
             }
+        }
+    }
+
+    private String formatTime(String timestamp) {
+        try {
+            SimpleDateFormat serverFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
+            SimpleDateFormat displayFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+            Date date = serverFormat.parse(timestamp);
+            return displayFormat.format(date);
+        } catch (Exception e) {
+            System.out.println("❌ Ошибка форматирования времени: " + e.getMessage());
+            return "";
         }
     }
 

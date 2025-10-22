@@ -10,6 +10,7 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <!-- СИНИЙ БЛОК СПРАВА -->
     <LinearLayout
         android:id="@+id/bubbleLayout"
         android:layout_width="wrap_content"
@@ -19,8 +20,10 @@
         android:paddingVertical="12dp"
         android:layout_marginEnd="16dp"
         android:elevation="2dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:minWidth="110dp"> <!-- Минимальная ширина для "Изменено" + время -->
 
+        <!-- Текст -->
         <TextView
             android:id="@+id/messageText"
             android:layout_width="wrap_content"
@@ -28,17 +31,44 @@
             android:text="Текст сообщения"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
-            android:maxWidth="280dp" />
+            android:maxWidth="280dp"
+            android:gravity="center_vertical|start" />
 
-        <TextView
-            android:id="@+id/editedText"
-            android:layout_width="wrap_content"
+        <!-- Контейнер для "Изменено" и времени -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Изменено"
-            android:textSize="10sp"
-            android:textColor="#CCCCCC"
-            android:maxLines="1"
-            android:visibility="gone" />
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <!-- "Изменено" слева -->
+            <TextView
+                android:id="@+id/editedText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Изменено"
+                android:textSize="10sp"
+                android:textColor="#CCCCCC"
+                android:maxLines="1"
+                android:visibility="gone" />
+
+            <!-- Пустое пространство -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Время ВСЕГДА справа -->
+            <TextView
+                android:id="@+id/timeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12:30"
+                android:textSize="10sp"
+                android:textColor="#CCCCCC"
+                android:maxLines="1" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </LinearLayout>

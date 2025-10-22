@@ -7,10 +7,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
 import android.widget.Toast;
 
 import okhttp3.ResponseBody;
@@ -49,10 +55,29 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         ChatMessage message = messageList.get(position);
         holder.messageText.setText(message.getText());
 
+        if (message.getTimestamp() != null && !message.getTimestamp().isEmpty()) {
+            holder.timeText.setText(formatTime(message.getTimestamp()));
+        } else {
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            holder.timeText.setText(sdf.format(new Date()));
+        }
+
         if (message.isEdited()) {
             holder.editedText.setVisibility(View.VISIBLE);
+            holder.bubbleLayout.setPadding(
+                    holder.bubbleLayout.getPaddingLeft(),
+                    holder.bubbleLayout.getPaddingTop(),
+                    holder.bubbleLayout.getPaddingRight(),
+                    12
+            );
         } else {
             holder.editedText.setVisibility(View.GONE);
+            holder.bubbleLayout.setPadding(
+                    holder.bubbleLayout.getPaddingLeft(),
+                    holder.bubbleLayout.getPaddingTop(),
+                    holder.bubbleLayout.getPaddingRight(),
+                    8
+            );
         }
 
         holder.itemView.setOnLongClickListener(v -> {
@@ -156,14 +181,30 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         return messageList.size();
     }
 
+    private String formatTime(String timestamp) {
+        try {
+            SimpleDateFormat serverFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
+            SimpleDateFormat displayFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
+            Date date = serverFormat.parse(timestamp);
+            return displayFormat.format(date);
+        } catch (Exception e) {
+            return timestamp;
+        }
+    }
+
     static class MessageViewHolder extends RecyclerView.ViewHolder {
         TextView messageText;
         TextView editedText;
+        TextView timeText;
+        LinearLayout bubbleLayout;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             messageText = itemView.findViewById(R.id.messageText);
             editedText = itemView.findViewById(R.id.editedText);
+            timeText = itemView.findViewById(R.id.timeText);
+            bubbleLayout = itemView.findViewById(R.id.bubbleLayout);
         }
     }
 }

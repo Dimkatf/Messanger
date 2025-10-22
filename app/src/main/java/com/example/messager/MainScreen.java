@@ -91,7 +91,6 @@ public class MainScreen extends AppCompatActivity {
             String newName = data.getStringExtra("new_name");
             if (newName != null) {
                 nameText.setText(newName);
-                // Обновляем имя в SessionManager
                 sessionManager.createSession(
                         sessionManager.getUserId(),
                         newName,

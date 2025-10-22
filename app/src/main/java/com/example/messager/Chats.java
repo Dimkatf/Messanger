@@ -1,8 +1,6 @@
 package com.example.messager;
 
-
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.widget.Button;
 import androidx.activity.EdgeToEdge;
@@ -19,20 +17,24 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Chats extends AppCompatActivity {
     private Button profileBtn;
     private RecyclerView chatsRecyclerView;
     public ChatAdapter chatAdapter;
     private ApiService apiService;
+    private SessionManager sessionManager;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
-    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.chats);
+
+        sessionManager = new SessionManager(this);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.chat_activity), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -70,30 +72,62 @@ public class Chats extends AppCompatActivity {
         super.onResume();
         loadLastMessageForFavorites();
     }
-    public void updateFavoritesLastMessage(String newMessage) {
+
+    public void updateFavoritesLastMessage(String newMessage, String timestamp) {
         if (chatAdapter != null) {
-            chatAdapter.updateLastMessageForFavorites(newMessage);
+            chatAdapter.updateFavoritesLastMessage(newMessage, timestamp);
         }
     }
 
     private void loadLastMessageForFavorites() {
-        Call<ApiResponse> call = apiService.getLastMessage("favorites");
-        call.enqueue(new Callback<ApiResponse>() {
+        String userId = sessionManager.getUserIdString();
+        if (userId == null || userId.equals("-1")) {
+            System.out.println("❌ User not logged in");
+            updateFavoritesLastMessage("Войдите в систему", "");
+            return;
+        }
+
+        String chatId = "favorites_" + userId;
+        System.out.println("📱 Loading last message for: " + chatId);
+
+        Call<Map<String, String>> call = apiService.getLastMessage(chatId);
+        call.enqueue(new Callback<Map<String, String>>() {
             @Override
-            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+            public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
+                System.out.println("📱 Response code: " + response.code());
+
                 if (response.isSuccessful() && response.body() != null) {
-                    ApiResponse apiResponse = response.body();
-                    if ("success".equals(apiResponse.getStatus())) {
-                        String text = apiResponse.getMessage();
-                        if (!text.equals("Нет сообщений")) {
-                            updateFavoritesLastMessage(text);
-                        }
+                    Map<String, String> apiResponse = response.body();
+                    System.out.println("📱 Server response: " + apiResponse);
+
+                    if ("success".equals(apiResponse.get("status"))) {
+                        String text = apiResponse.get("message");
+                        String timestamp = apiResponse.get("timestamp");
+
+                        System.out.println("📱 Last message: " + text);
+                        System.out.println("📱 Timestamp: " + timestamp);
+
+                        updateFavoritesLastMessage(text, timestamp);
+                    } else {
+                        System.out.println("❌ Server returned error status");
+                        updateFavoritesLastMessage("Нет сообщений", "");
                     }
+                } else {
+                    System.out.println("❌ Response not successful");
+                    try {
+                        String errorBody = response.errorBody() != null ? response.errorBody().string() : "null";
+                        System.out.println("❌ Error body: " + errorBody);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    updateFavoritesLastMessage("Ошибка загрузки", "");
                 }
             }
 
             @Override
-            public void onFailure(Call<ApiResponse> call, Throwable t) {
+            public void onFailure(Call<Map<String, String>> call, Throwable t) {
+                System.out.println("❌ Network error: " + t.getMessage());
+                updateFavoritesLastMessage("Ошибка сети", "");
             }
         });
     }
