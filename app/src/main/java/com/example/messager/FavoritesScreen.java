@@ -1,6 +1,5 @@
 package com.example.messager;
 
-
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -26,13 +25,23 @@ public class FavoritesScreen extends AppCompatActivity {
     private MessageAdapter messageAdapter;
     private List<ChatMessage> messageList = new ArrayList<>();
     private ApiService apiService;
+    private SessionManager sessionManager;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
-    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.favorites_activity);
+
+        sessionManager = new SessionManager(this);
+
+        if (!sessionManager.isLoggedIn()) {
+            Toast.makeText(this, "Пожалуйста, войдите в систему", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        String currentUserId = sessionManager.getUserIdString();
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
@@ -46,7 +55,8 @@ public class FavoritesScreen extends AppCompatActivity {
         messagesRecyclerView = findViewById(R.id.messagesRecyclerView);
 
         messagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        messageAdapter = new MessageAdapter(messageList, this, apiService);
+
+        messageAdapter = new MessageAdapter(messageList, this, apiService, currentUserId);
         messagesRecyclerView.setAdapter(messageAdapter);
 
         exitFavoritesBtn.setOnClickListener(v -> finish());
@@ -54,35 +64,28 @@ public class FavoritesScreen extends AppCompatActivity {
         sendMessageBtn.setOnClickListener(v -> {
             String text = editMessage.getText().toString().trim();
             if (!text.isEmpty()) {
-                sendMessageToServer(text);
+                sendMessageToServer(text, currentUserId);
                 editMessage.setText("");
             }
         });
 
-        loadAllMessages();
+        loadAllMessages(currentUserId);
     }
 
-    private void sendMessageToServer(String text) {
+    private void sendMessageToServer(String text, String userId) {
         Map<String, String> request = new HashMap<>();
-        request.put("chatId", "favorites");
+        request.put("chatId", "favorites_" + userId);
         request.put("text", text);
+        request.put("userId", userId);
 
-        System.out.println("📱 Sending message to: " + BASE_URL + "api/send-message");
-        System.out.println("📱 Message text: " + text);
-
-        Call<ApiResponse> call = apiService.sendMessage(request); // ★★★★ ApiResponse вместо String
+        Call<ApiResponse> call = apiService.sendMessage(request);
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
-                System.out.println("📱 Send response code: " + response.code());
-
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse apiResponse = response.body();
-                    System.out.println("📱 Server response - Status: " + apiResponse.getStatus() + ", Message: " + apiResponse.getMessage());
-
                     if ("success".equals(apiResponse.getStatus())) {
-                        System.out.println("📱 Message sent successfully!");
-                        loadAllMessages();
+                        loadAllMessages(userId);
                         Toast.makeText(FavoritesScreen.this, "Сообщение отправлено", Toast.LENGTH_SHORT).show();
                     } else {
                         Toast.makeText(FavoritesScreen.this, "Ошибка: " + apiResponse.getMessage(), Toast.LENGTH_SHORT).show();
@@ -94,15 +97,13 @@ public class FavoritesScreen extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
-                System.out.println("📱 Send network error: " + t.getMessage());
                 Toast.makeText(FavoritesScreen.this, "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-
-    private void loadAllMessages() {
-        Call<List<ChatMessage>> call = apiService.getMessages("favorites");
+    private void loadAllMessages(String userId) {
+        Call<List<ChatMessage>> call = apiService.getMessages("favorites_" + userId);
         call.enqueue(new Callback<List<ChatMessage>>() {
             @Override
             public void onResponse(Call<List<ChatMessage>> call, Response<List<ChatMessage>> response) {
@@ -115,23 +116,17 @@ public class FavoritesScreen extends AppCompatActivity {
                         messagesRecyclerView.scrollToPosition(messageList.size() - 1);
                     }
                 } else {
-                    try {
-                        String errorBody = response.errorBody().string();
-                        System.out.println("❌ Server error: " + response.code() + " - " + errorBody);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
                     Toast.makeText(FavoritesScreen.this, "Ошибка сервера: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<List<ChatMessage>> call, Throwable t) {
-                System.out.println("❌ Network error: " + t.getMessage());
                 Toast.makeText(FavoritesScreen.this, "Ошибка загрузки: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
+
     public void deleteMessage(Long messageId, int position) {
         Call<ApiResponse> call = apiService.deleteMessage(messageId);
         call.enqueue(new Callback<ApiResponse>() {
@@ -143,7 +138,6 @@ public class FavoritesScreen extends AppCompatActivity {
                         messageList.remove(position);
                         messageAdapter.notifyItemRemoved(position);
                         messageAdapter.notifyItemRangeChanged(position, messageList.size() - position);
-
                         Toast.makeText(FavoritesScreen.this, "Сообщение удалено", Toast.LENGTH_SHORT).show();
                     }
                 }

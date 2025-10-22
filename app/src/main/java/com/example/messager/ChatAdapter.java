@@ -5,6 +5,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import retrofit2.Call;
@@ -18,12 +20,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     private List<Chat> chatList;
     private Context context;
     private ApiService apiService;
+    private SessionManager sessionManager;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
-    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     public ChatAdapter(List<Chat> chatList, Context context) {
         this.chatList = chatList;
         this.context = context;
+        this.sessionManager = new SessionManager(context);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
@@ -35,8 +38,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     @NonNull
     @Override
     public ChatViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // ИСПРАВЛЕНИЕ: нужно вернуть реальный ViewHolder, а не null
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_chat, parent, false);
+                .inflate(R.layout.item_chat, parent, false); // Убедитесь, что item_chat существует
         return new ChatViewHolder(view);
     }
 
@@ -47,30 +51,37 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         holder.time.setText(chat.getTime());
 
         if (chat.getName().equals("Избранное")) {
-            loadLastMessageForFavorites(holder.lastMessage);
+            String userId = sessionManager.getUserIdString();
+            if (userId != null && !userId.equals("-1")) {
+                loadLastMessageForFavorites(holder.lastMessage, userId);
+            } else {
+                holder.lastMessage.setText("Нет сообщений");
+            }
         } else {
             holder.lastMessage.setText(chat.getLastMessage());
         }
 
         holder.itemView.setOnClickListener(v -> {
             if (chat.getName().equals("Избранное")) {
-                android.content.Intent intent = new android.content.Intent(context, FavoritesScreen.class);
-                context.startActivity(intent);
+                if (sessionManager.isLoggedIn()) {
+                    android.content.Intent intent = new android.content.Intent(context, FavoritesScreen.class);
+                    context.startActivity(intent);
+                } else {
+                    Toast.makeText(context, "Пожалуйста, войдите в систему", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                android.widget.Toast.makeText(context, "Чат: " + chat.getName(), android.widget.Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Чат: " + chat.getName(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void loadLastMessageForFavorites(TextView lastMessageView) {
-        Call<ApiResponse> call = apiService.getLastMessage("favorites");
+    private void loadLastMessageForFavorites(TextView lastMessageView, String userId) {
+        Call<ApiResponse> call = apiService.getLastMessage("favorites_" + userId);
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse apiResponse = response.body();
-                    System.out.println("📱 Adapter last message - Status: " + apiResponse.getStatus() + ", Message: " + apiResponse.getMessage());
-
                     if ("success".equals(apiResponse.getStatus())) {
                         String text = apiResponse.getMessage();
                         lastMessageView.setText(text);
@@ -84,7 +95,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
-                System.out.println("📱 Adapter last message error: " + t.getMessage());
                 lastMessageView.setText("Нет сообщений");
             }
         });
@@ -94,6 +104,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     public int getItemCount() {
         return chatList.size();
     }
+
     public void updateLastMessageForFavorites(String newMessage) {
         for (int i = 0; i < chatList.size(); i++) {
             Chat chat = chatList.get(i);
@@ -115,5 +126,4 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             time = itemView.findViewById(R.id.time);
         }
     }
-
 }

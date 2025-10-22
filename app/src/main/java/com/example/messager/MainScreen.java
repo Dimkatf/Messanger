@@ -1,7 +1,6 @@
 package com.example.messager;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -24,18 +23,13 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainScreen extends AppCompatActivity {
-    //private Button exitBtn;
     private Button chatsBtn;
-    private Long userId;
-    private String userName;
-    private String userPhone;
     private TextView nameText;
     private Button changeBtn;
     private ImageView userPhotoView;
-    private SharedPreferences prefs;
+    private SessionManager sessionManager;
     private ApiService apiService;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
-    //private static final String BASE_URL = "http://10.0.2.2:8080/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,13 +42,14 @@ public class MainScreen extends AppCompatActivity {
             return insets;
         });
 
-        chatsBtn = findViewById(R.id.chatsMainScreen);
-        chatsBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(this, Chats.class);
-            startActivity(intent);
+        sessionManager = new SessionManager(this);
+
+        if (!sessionManager.isLoggedIn()) {
+            Toast.makeText(this, "Пожалуйста, войдите в систему", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, MainActivity.class));
             finish();
-        });
-        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+            return;
+        }
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
@@ -62,32 +57,26 @@ public class MainScreen extends AppCompatActivity {
                 .build();
         apiService = retrofit.create(ApiService.class);
 
-        //exitBtn = findViewById(R.id.exitByAccount);
+        chatsBtn = findViewById(R.id.chatsMainScreen);
         changeBtn = findViewById(R.id.changeBtn);
         nameText = findViewById(R.id.name);
         userPhotoView = findViewById(R.id.imageView);
 
-        userId = getIntent().getLongExtra("user_id", -1);
-        userName = getIntent().getStringExtra("user_name");
-        userPhone = getIntent().getStringExtra("user_phone");
-
-        if (userPhone != null && !userPhone.isEmpty()) {
-            prefs.edit()
-                    .putLong("user_id", userId)
-                    .putString("user_name", userName)
-                    .putString("user_phone", userPhone)
-                    .apply();
-        } else {
-            userId = prefs.getLong("user_id", -1);
-            userName = prefs.getString("user_name", "");
-            userPhone = prefs.getString("user_phone", "");
-        }
+        String userName = sessionManager.getUserName();
+        String userPhone = sessionManager.getUserPhone();
+        Long userId = sessionManager.getUserId();
 
         nameText.setText(userName);
 
         if (userPhone != null && !userPhone.isEmpty()) {
             loadUserPhotoFromServer(userPhone);
         }
+
+        chatsBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, Chats.class);
+            startActivity(intent);
+        });
+
         changeBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChangeDataScreen.class);
             startActivityForResult(intent, 1);
@@ -102,7 +91,12 @@ public class MainScreen extends AppCompatActivity {
             String newName = data.getStringExtra("new_name");
             if (newName != null) {
                 nameText.setText(newName);
-                userName = newName;
+                // Обновляем имя в SessionManager
+                sessionManager.createSession(
+                        sessionManager.getUserId(),
+                        newName,
+                        sessionManager.getUserPhone()
+                );
                 toast("Имя обновлено!");
             }
         }
@@ -111,13 +105,12 @@ public class MainScreen extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        String savedName = prefs.getString("user_name", userName);
-        if (savedName != null && !savedName.equals(userName)) {
+        String savedName = sessionManager.getUserName();
+        if (savedName != null && !savedName.isEmpty()) {
             nameText.setText(savedName);
-            userName = savedName;
         }
 
-        String phone = prefs.getString("user_phone", "");
+        String phone = sessionManager.getUserPhone();
         if (!phone.isEmpty()) {
             loadUserPhotoFromServer(phone);
         }
@@ -148,8 +141,4 @@ public class MainScreen extends AppCompatActivity {
     private void toast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
-
-    private void loadUserMessages(Long id) {
-    }
-
 }

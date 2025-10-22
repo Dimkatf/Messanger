@@ -1,7 +1,6 @@
 package com.example.messager;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -22,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
     private ApiService apiService;
     private Button registrBtn, loginBtn;
     private EditText numberPhoneEdit, passwordEdit;
-    private SharedPreferences prefs;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,12 +34,13 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        if(isUserLoggedIn()){
+        sessionManager = new SessionManager(this);
+
+        if(sessionManager.isLoggedIn()){
             goToMainScreen();
             return;
         }
-        setContentView(R.layout.activity_main );
+
         apiService = ApiClient.getClient().create(ApiService.class);
         testConnection();
 
@@ -87,16 +87,10 @@ public class MainActivity extends AppCompatActivity {
                                 String userName = parts[2];
                                 String userPhone = parts[3];
 
-                                saveUserData(userId, userName, userPhone);
-                                goToMainScreen();
+                                sessionManager.createSession(userId, userName, userPhone);
 
                                 toast("Добро пожаловать, " + userName + "!");
-
-                                Intent intent = new Intent(MainActivity.this, MainScreen.class);
-                                intent.putExtra("user_id", userId);
-                                intent.putExtra("user_name", userName);
-                                intent.putExtra("user_phone", phone);
-                                startActivity(intent);
+                                goToMainScreen();
 
                                 numberPhoneEdit.setText("");
                                 passwordEdit.setText("");
@@ -121,20 +115,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void saveUserData(Long userId, String userName, String userPhone){
-        getSharedPreferences("user_prefs", MODE_PRIVATE)
-                .edit()
-                .putLong("user_id", userId)
-                .putString("user_name", userName)
-                .putString("user_phone", userPhone)
-                .apply();
-
-        Log.d("SAVE", "✅ Saved to SharedPreferences:");
-        Log.d("SAVE", "   User ID: " + userId);
-        Log.d("SAVE", "   User Name: " + userName);
-        Log.d("SAVE", "   User Phone: " + userPhone);
-    }
-
     private void testConnection() {
         Call<String> call = apiService.testConnection();
         call.enqueue(new Callback<String>() {
@@ -153,24 +133,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    private boolean isUserLoggedIn(){
-        String userPhone = prefs.getString("user_phone", "");
-        String userName = prefs.getString("user_name", "");
-        return !userPhone.isEmpty() && !userName.isEmpty();
-    }
+
     private void goToMainScreen(){
         Intent intent = new Intent(this, MainScreen.class);
-        Long userId = prefs.getLong("user_id", - 1);
-        String userPhone = prefs.getString("user_phone", "");
-        String userName = prefs.getString("user_name", "");
-
-        intent.putExtra("user_id", userId);
-        intent.putExtra("user_name", userName);
-        intent.putExtra("user_phone", userPhone);
         startActivity(intent);
         finish();
-
-
     }
 
     private void toast(String message){

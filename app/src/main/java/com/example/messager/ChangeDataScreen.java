@@ -107,12 +107,6 @@ public class ChangeDataScreen extends AppCompatActivity {
         userName = prefs.getString("user_name", "");
         changeNameText.setText(userName);
 
-//        Retrofit retrofit = new Retrofit.Builder()
-//                .baseUrl(BASE_URL)
-//                .addConverterFactory(ScalarsConverterFactory.create())
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .build();
-//        apiService = retrofit.create(ApiService.class);
 
         String phone = prefs.getString("user_phone", "");
         if (!phone.isEmpty()) {

@@ -1,18 +1,16 @@
 package com.example.messager;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
-import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import okhttp3.ResponseBody;
@@ -20,16 +18,22 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
     private List<ChatMessage> messageList;
-    private FavoritesScreen activity;
+    private Context context;
     private ApiService apiService;
+    private String currentUserId;
+    private FavoritesScreen activity;
 
-    public MessageAdapter(List<ChatMessage> messageList, FavoritesScreen activity, ApiService apiService) {
+    public MessageAdapter(List<ChatMessage> messageList, Context context, ApiService apiService, String currentUserId) {
         this.messageList = messageList;
-        this.activity = activity;
+        this.context = context;
         this.apiService = apiService;
+        this.currentUserId = currentUserId;
+
+        if (context instanceof FavoritesScreen) {
+            this.activity = (FavoritesScreen) context;
+        }
     }
 
     @NonNull
@@ -45,47 +49,46 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         ChatMessage message = messageList.get(position);
         holder.messageText.setText(message.getText());
 
-        if(message.isEdited()) {
+        if (message.isEdited()) {
             holder.editedText.setVisibility(View.VISIBLE);
-            // Текст слева, "Изменено" справа
-            holder.messageText.setGravity(Gravity.START);
-            holder.editedText.setGravity(Gravity.END);
         } else {
             holder.editedText.setVisibility(View.GONE);
-            // Текст справа
-            holder.messageText.setGravity(Gravity.END);
         }
 
-
         holder.itemView.setOnLongClickListener(v -> {
-            new AlertDialog.Builder(activity)
-                    .setItems(new String[]{"Изменить", "Удалить", "Закрепить", "Скопировать"}, (dialog, which) -> {
-                        switch (which){
-                            case 0:
-                                showEditDialog(message, position);
-                                break;
-                            case 1:
-                                new AlertDialog.Builder(activity)
-                                        .setTitle("Удалить сообщение?")
-                                        .setMessage("Вы уверены, что хотите удалить это сообщение?")
-                                        .setPositiveButton("Удалить", (dialog1, which1) -> {
-                                            activity.deleteMessage(message.getId(), position);
-                                        })
-                                        .setNegativeButton("Отмена", null)
-                                        .show();
-                                break;
-                        }
-                    })
-                    .show();
+            if (activity != null) {
+                showContextMenu(message, position);
+            }
             return true;
         });
     }
 
+    private void showContextMenu(ChatMessage message, int position) {
+        new AlertDialog.Builder(context)
+                .setItems(new String[]{"Изменить", "Удалить", "Закрепить", "Скопировать"}, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            showEditDialog(message, position);
+                            break;
+                        case 1:
+                            showDeleteConfirmation(message, position);
+                            break;
+                        case 2:
+                            pinMessage(message);
+                            break;
+                        case 3:
+                            copyMessage(message);
+                            break;
+                    }
+                })
+                .show();
+    }
+
     private void showEditDialog(ChatMessage message, int position) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("Изменить сообщение");
 
-        final EditText input = new EditText(activity);
+        final EditText input = new EditText(context);
         input.setText(message.getText());
         builder.setView(input);
 
@@ -100,6 +103,19 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         builder.show();
     }
 
+    private void showDeleteConfirmation(ChatMessage message, int position) {
+        new AlertDialog.Builder(context)
+                .setTitle("Удалить сообщение?")
+                .setMessage("Вы уверены, что хотите удалить это сообщение?")
+                .setPositiveButton("Удалить", (dialog1, which1) -> {
+                    if (activity != null) {
+                        activity.deleteMessage(message.getId(), position);
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
     private void updateMessage(Long messageId, String newText, int position) {
         UpdateMessageRequest request = new UpdateMessageRequest(messageId, newText);
 
@@ -111,17 +127,28 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
                     message.setText(newText);
                     message.setEdited(true);
                     notifyItemChanged(position);
-                    Toast.makeText(activity, "Сообщение обновлено", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Сообщение обновлено", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(activity, "Ошибка обновления", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Ошибка обновления", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Toast.makeText(activity, "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void pinMessage(ChatMessage message) {
+        Toast.makeText(context, "Сообщение закреплено", Toast.LENGTH_SHORT).show();
+    }
+
+    private void copyMessage(ChatMessage message) {
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        android.content.ClipData clip = android.content.ClipData.newPlainText("Сообщение", message.getText());
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(context, "Сообщение скопировано", Toast.LENGTH_SHORT).show();
     }
 
     @Override
