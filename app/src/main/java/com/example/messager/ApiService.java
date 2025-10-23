@@ -67,11 +67,14 @@ public interface ApiService {
 
     @DELETE("api/delete-message")
     Call<ApiResponse> deleteMessage(@Query("messageId") Long messageId);
-
     @PUT("api/update_message")
     Call<ResponseBody> updateMessage(@Body UpdateMessageRequest request);
     @DELETE("api/delete_user")
     Call<String> deleteUserById(@Query("userId") Long userId);
+
+    @PUT("api/add_userName")
+    Call<ApiResponse> addUserName(@Body AddUserName request);
+
 
 }
 

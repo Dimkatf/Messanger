@@ -3,15 +3,15 @@ package com.example.messager;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,23 +19,18 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-
-
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class ChangeDataScreen extends AppCompatActivity {
@@ -48,8 +43,8 @@ public class ChangeDataScreen extends AppCompatActivity {
     private Button deleteAccount;
     private Button exitByAccount;
     private ApiService apiService;
+    private EditText userNameText;
     private SharedPreferences prefs;
-    //private static final String BASE_URL = "http://10.0.2.2:8080/";
     private static final String BASE_URL = "http://192.168.1.36:8080/";
 
     private ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
@@ -67,46 +62,32 @@ public class ChangeDataScreen extends AppCompatActivity {
             }
     );
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.change_datauser);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.change_screen), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
-                .addConverterFactory(ScalarsConverterFactory.create()) // Должен быть ПЕРВЫМ
+                .addConverterFactory(ScalarsConverterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         apiService = retrofit.create(ApiService.class);
+
         deleteAccount = findViewById(R.id.deleteAccount);
-        deleteAccount.setOnClickListener(v -> {
-            showDeleteConfirmationDialog();
-        });
-
         exitByAccount = findViewById(R.id.exitByAccount);
-        exitByAccount.setOnClickListener(v -> {
-            logoutUser();
-        });
-
-
-        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-
-
         exit = findViewById(R.id.exitByChangeScreen);
         image = findViewById(R.id.selectedPhotoView);
         changeNameText = findViewById(R.id.changeNameBtn);
         changeBtn = findViewById(R.id.changeBtnInScreenChange);
+        userNameText = findViewById(R.id.changeUsername);
+
+        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
 
         userName = prefs.getString("user_name", "");
+        String userUsername = prefs.getString("user_username", "");
         changeNameText.setText(userName);
-
+        userNameText.setText(userUsername);
 
         String phone = prefs.getString("user_phone", "");
         if (!phone.isEmpty()) {
@@ -121,65 +102,135 @@ public class ChangeDataScreen extends AppCompatActivity {
 
         exit.setOnClickListener(v -> finish());
 
+        deleteAccount.setOnClickListener(v -> {
+            showDeleteConfirmationDialog();
+        });
+
+        exitByAccount.setOnClickListener(v -> {
+            logoutUser();
+        });
+
         changeBtn.setOnClickListener(v -> {
-            String newName = changeNameText.getText().toString().trim();
-            String userPhone = prefs.getString("user_phone", "");
+            saveUserData();
+        });
+    }
 
-            if(newName.isEmpty()) {
-                toast("Введите имя");
-                return;
-            }
+    private void saveUserData() {
+        String newName = changeNameText.getText().toString().trim();
+        String newUsername = userNameText.getText().toString().trim();
+        String userPhone = prefs.getString("user_phone", "");
 
-            ApiService.UpdateNameRequest request = new ApiService.UpdateNameRequest(userPhone, newName);
+        if (newName.isEmpty()) {
+            toast("Введите имя");
+            return;
+        }
 
-            apiService.updateUserName(request).enqueue(new Callback<String>() {
-                @Override
-                public void onResponse(Call<String> call, Response<String> response) {
-                    if(response.isSuccessful()) {
-                        String responseBody = response.body();
-                        System.out.println("✅ Success! Body: " + responseBody);
+        if (userPhone.isEmpty()) {
+            toast("Ошибка: телефон не найден");
+            return;
+        }
 
-                        if (responseBody != null && responseBody.contains("\"status\":\"success\"")) {
-                            prefs.edit().putString("user_name", newName).apply();
-                            toast("Имя изменено!");
+        ApiService.UpdateNameRequest nameRequest = new ApiService.UpdateNameRequest(userPhone, newName);
+        apiService.updateUserName(nameRequest).enqueue(new Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
+                if (response.isSuccessful()) {
+                    String responseBody = response.body();
+                    System.out.println("✅ Name updated! Body: " + responseBody);
 
+                    if (responseBody != null && responseBody.contains("\"status\":\"success\"")) {
+                        prefs.edit().putString("user_name", newName).apply();
+
+                        if (!newUsername.isEmpty()) {
+                            saveUsername(userPhone, newUsername);
+                        } else {
+                            toast("Данные успешно обновлены!");
                             Intent resultIntent = new Intent();
                             resultIntent.putExtra("new_name", newName);
                             setResult(RESULT_OK, resultIntent);
-                        } else {
-                            toast("Ошибка сервера");
                         }
                     } else {
-                        System.out.println("❌ Server error: " + response.code());
-                        try {
-                            String errorBody = response.errorBody().string();
-                            System.out.println("Error body: " + errorBody);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        toast("Ошибка сервера: " + response.code());
+                        toast("Ошибка сервера при изменении имени");
                     }
+                } else {
+                    System.out.println("❌ Server error: " + response.code());
+                    toast("Ошибка сервера при изменении имени: " + response.code());
                 }
+            }
 
-                @Override
-                public void onFailure(Call<String> call, Throwable t) {
-                    toast("Ошибка сети: " + t.getMessage());
-                }
-            });
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                toast("Ошибка сети при изменении имени: " + t.getMessage());
+            }
         });
     }
-    private void logoutUser(){
-        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        prefs.edit()
-                .remove("user_id")
-                .remove("user_name")
-                .remove("user_photo")
-                .remove("user_photo_uri")
-                .clear()
-                .apply();
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish();
+
+    private void saveUsername(String phone, String username) {
+        String formattedUsername = username;
+        if (!username.startsWith("@") && !username.isEmpty()) {
+            formattedUsername = "@" + username;
+        }
+
+        System.out.println("📱 Original username: " + username);
+        System.out.println("📱 Formatted username: " + formattedUsername);
+
+        final String finalFormattedUsername = formattedUsername;
+
+        AddUserName request = new AddUserName(phone, formattedUsername);
+
+        apiService.addUserName(request).enqueue(new Callback<ApiResponse>() {
+            @Override
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse apiResponse = response.body();
+                    System.out.println("✅ Username updated! Status: " + apiResponse.getStatus());
+
+                    if ("success".equals(apiResponse.getStatus())) {
+                        prefs.edit().putString("user_username", finalFormattedUsername).apply();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                userNameText.setText(finalFormattedUsername);
+                                toast("Данные успешно обновлены!");
+                            }
+                        });
+                    } else {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                toast("Ошибка: " + apiResponse.getMessage());
+                            }
+                        });
+                    }
+                } else {
+                    System.out.println("❌ Server error for username: " + response.code());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            toast("Ошибка сервера: " + response.code());
+                        }
+                    });
+                }
+
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("new_name", prefs.getString("user_name", ""));
+                setResult(RESULT_OK, resultIntent);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        toast("Ошибка сети при сохранении username: " + t.getMessage());
+                    }
+                });
+
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("new_name", prefs.getString("user_name", ""));
+                setResult(RESULT_OK, resultIntent);
+            }
+        });
     }
 
     private void uploadPhotoToServer(Uri imageUri) {
@@ -250,7 +301,6 @@ public class ChangeDataScreen extends AppCompatActivity {
         }
     }
 
-
     private void loadPhotoFromServer(String phone) {
         Call<ResponseBody> call = apiService.getUserPhoto(phone);
         call.enqueue(new Callback<ResponseBody>() {
@@ -269,7 +319,7 @@ public class ChangeDataScreen extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-
+                // Можно оставить пустым или добавить логирование
             }
         });
     }
@@ -284,17 +334,30 @@ public class ChangeDataScreen extends AppCompatActivity {
         return byteBuffer.toByteArray();
     }
 
+    private void logoutUser() {
+        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        prefs.edit()
+                .remove("user_id")
+                .remove("user_name")
+                .remove("user_username")
+                .remove("user_photo")
+                .remove("user_photo_uri")
+                .clear()
+                .apply();
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    }
 
     private void clearUserData() {
         SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
         preferences.edit().clear().apply();
     }
 
-
-
-    private void toast(String message){
+    private void toast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
+
     private void showDeleteConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Удаление аккаунта")
@@ -305,7 +368,6 @@ public class ChangeDataScreen extends AppCompatActivity {
                 .setNegativeButton("Отмена", null)
                 .show();
     }
-
 
     private void deleteUserById() {
         Long userId = prefs.getLong("user_id", 0L);
@@ -319,7 +381,6 @@ public class ChangeDataScreen extends AppCompatActivity {
             public void onResponse(Call<String> call, Response<String> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     String responseBody = response.body();
-
                     toast("Пользователь успешно удалён!");
                     clearUserData();
                     Intent intent = new Intent(ChangeDataScreen.this, MainActivity.class);
@@ -330,7 +391,7 @@ public class ChangeDataScreen extends AppCompatActivity {
                     try {
                         String errorBody = response.errorBody().string();
                         toast("Ошибка: " + errorBody);
-                    } catch (IOException e) {
+                    } catch (java.io.IOException e) {
                         toast("Ошибка сервера");
                     }
                 }
@@ -341,9 +402,5 @@ public class ChangeDataScreen extends AppCompatActivity {
                 toast("Ошибка сети: " + t.getMessage());
             }
         });
-    }
-
-    private Long getCurrentUserId() {
-        return prefs.getLong("user_id", 0L);
     }
 }
