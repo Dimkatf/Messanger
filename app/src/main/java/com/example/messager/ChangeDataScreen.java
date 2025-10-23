@@ -42,9 +42,9 @@ public class ChangeDataScreen extends AppCompatActivity {
     private String userName;
     private Button deleteAccount;
     private Button exitByAccount;
+    private SessionManager sessionManager;
     private ApiService apiService;
     private EditText userNameText;
-    private SharedPreferences prefs;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
 
     private ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
@@ -74,6 +74,8 @@ public class ChangeDataScreen extends AppCompatActivity {
                 .build();
         apiService = retrofit.create(ApiService.class);
 
+        sessionManager = new SessionManager(this);
+
         deleteAccount = findViewById(R.id.deleteAccount);
         exitByAccount = findViewById(R.id.exitByAccount);
         exit = findViewById(R.id.exitByChangeScreen);
@@ -82,14 +84,19 @@ public class ChangeDataScreen extends AppCompatActivity {
         changeBtn = findViewById(R.id.changeBtnInScreenChange);
         userNameText = findViewById(R.id.changeUsername);
 
-        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        userName = sessionManager.getUserName();
+        String userUsername = sessionManager.getUsername();
 
-        userName = prefs.getString("user_name", "");
-        String userUsername = prefs.getString("user_username", "");
         changeNameText.setText(userName);
-        userNameText.setText(userUsername);
 
-        String phone = prefs.getString("user_phone", "");
+        if (userUsername != null && !userUsername.isEmpty()) {
+            userNameText.setText(userUsername);
+        } else {
+            userNameText.setText("");
+            userNameText.setHint("Введите username");
+        }
+
+        String phone = sessionManager.getUserPhone();
         if (!phone.isEmpty()) {
             loadPhotoFromServer(phone);
         }
@@ -118,7 +125,7 @@ public class ChangeDataScreen extends AppCompatActivity {
     private void saveUserData() {
         String newName = changeNameText.getText().toString().trim();
         String newUsername = userNameText.getText().toString().trim();
-        String userPhone = prefs.getString("user_phone", "");
+        String userPhone = sessionManager.getUserPhone();
 
         if (newName.isEmpty()) {
             toast("Введите имя");
@@ -139,7 +146,7 @@ public class ChangeDataScreen extends AppCompatActivity {
                     System.out.println("✅ Name updated! Body: " + responseBody);
 
                     if (responseBody != null && responseBody.contains("\"status\":\"success\"")) {
-                        prefs.edit().putString("user_name", newName).apply();
+                        updateUserNameInSession(newName);
 
                         if (!newUsername.isEmpty()) {
                             saveUsername(userPhone, newUsername);
@@ -165,6 +172,15 @@ public class ChangeDataScreen extends AppCompatActivity {
         });
     }
 
+    private void updateUserNameInSession(String newName) {
+        Long userId = sessionManager.getUserId();
+        String userPhone = sessionManager.getUserPhone();
+        String userUsername = sessionManager.getUsername();
+
+        sessionManager.createSession(userId, newName, userPhone);
+        sessionManager.saveUsername(userUsername);
+    }
+
     private void saveUsername(String phone, String username) {
         String formattedUsername = username;
         if (!username.startsWith("@") && !username.isEmpty()) {
@@ -186,7 +202,9 @@ public class ChangeDataScreen extends AppCompatActivity {
                     System.out.println("✅ Username updated! Status: " + apiResponse.getStatus());
 
                     if ("success".equals(apiResponse.getStatus())) {
-                        prefs.edit().putString("user_username", finalFormattedUsername).apply();
+                        sessionManager.saveUsername(finalFormattedUsername);
+                        System.out.println("💾 Saved to SessionManager: " + finalFormattedUsername);
+
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -213,7 +231,7 @@ public class ChangeDataScreen extends AppCompatActivity {
                 }
 
                 Intent resultIntent = new Intent();
-                resultIntent.putExtra("new_name", prefs.getString("user_name", ""));
+                resultIntent.putExtra("new_name", sessionManager.getUserName());
                 setResult(RESULT_OK, resultIntent);
             }
 
@@ -227,7 +245,7 @@ public class ChangeDataScreen extends AppCompatActivity {
                 });
 
                 Intent resultIntent = new Intent();
-                resultIntent.putExtra("new_name", prefs.getString("user_name", ""));
+                resultIntent.putExtra("new_name", sessionManager.getUserName());
                 setResult(RESULT_OK, resultIntent);
             }
         });
@@ -235,7 +253,8 @@ public class ChangeDataScreen extends AppCompatActivity {
 
     private void uploadPhotoToServer(Uri imageUri) {
         try {
-            String phone = prefs.getString("user_phone", "");
+            // ИСПРАВЛЕНО: используем sessionManager вместо prefs
+            String phone = sessionManager.getUserPhone();
             if (phone.isEmpty()) {
                 toast("Ошибка: телефон не найден");
                 return;
@@ -319,7 +338,6 @@ public class ChangeDataScreen extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                // Можно оставить пустым или добавить логирование
             }
         });
     }
@@ -335,23 +353,14 @@ public class ChangeDataScreen extends AppCompatActivity {
     }
 
     private void logoutUser() {
-        SharedPreferences prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        prefs.edit()
-                .remove("user_id")
-                .remove("user_name")
-                .remove("user_username")
-                .remove("user_photo")
-                .remove("user_photo_uri")
-                .clear()
-                .apply();
+        sessionManager.logout();
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
         finish();
     }
 
     private void clearUserData() {
-        SharedPreferences preferences = getSharedPreferences("user_prefs", MODE_PRIVATE);
-        preferences.edit().clear().apply();
+        sessionManager.logout();
     }
 
     private void toast(String message) {
@@ -370,8 +379,8 @@ public class ChangeDataScreen extends AppCompatActivity {
     }
 
     private void deleteUserById() {
-        Long userId = prefs.getLong("user_id", 0L);
-        if (userId == 0L) {
+        Long userId = sessionManager.getUserId();
+        if (userId == -1L) {
             toast("ID пользователя не найден");
             return;
         }

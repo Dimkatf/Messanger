@@ -135,17 +135,29 @@ public class FavoritesScreen extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     ApiResponse apiResponse = response.body();
                     if ("success".equals(apiResponse.getStatus())) {
-                        messageList.remove(position);
-                        messageAdapter.notifyItemRemoved(position);
-                        messageAdapter.notifyItemRangeChanged(position, messageList.size() - position);
-                        Toast.makeText(FavoritesScreen.this, "Сообщение удалено", Toast.LENGTH_SHORT).show();
+                        runOnUiThread(() -> {
+                            messageList.remove(position);
+                            messageAdapter.notifyItemRemoved(position);
+                            messageAdapter.notifyItemRangeChanged(position, messageList.size() - position);
+                            Toast.makeText(FavoritesScreen.this, "Сообщение удалено", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        runOnUiThread(() ->
+                                Toast.makeText(FavoritesScreen.this, "Ошибка: " + apiResponse.getMessage(), Toast.LENGTH_SHORT).show()
+                        );
                     }
+                } else {
+                    runOnUiThread(() ->
+                            Toast.makeText(FavoritesScreen.this, "Ошибка сервера: " + response.code(), Toast.LENGTH_SHORT).show()
+                    );
                 }
             }
 
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
-                Toast.makeText(FavoritesScreen.this, "Ошибка удаления", Toast.LENGTH_SHORT).show();
+                runOnUiThread(() ->
+                        Toast.makeText(FavoritesScreen.this, "Ошибка сети: " + t.getMessage(), Toast.LENGTH_SHORT).show()
+                );
             }
         });
     }

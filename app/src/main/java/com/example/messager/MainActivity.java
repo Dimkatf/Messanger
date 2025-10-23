@@ -75,19 +75,19 @@ public class MainActivity extends AppCompatActivity {
             call.enqueue(new Callback<String>() {
                 @Override
                 public void onResponse(Call<String> call, Response<String> response) {
-                    Log.d("LOGIN", "Response: " + response.body());
-
                     if(response.isSuccessful() && response.body() != null){
                         String result = response.body();
 
                         if(result.startsWith("LOGIN_SUCCESS")) {
                             String[] parts = result.split("\\|");
-                            if(parts.length >= 4) {
+                            if(parts.length >= 5) {
                                 Long userId = Long.parseLong(parts[1]);
                                 String userName = parts[2];
                                 String userPhone = parts[3];
+                                String userUsername = parts[4];
 
                                 sessionManager.createSession(userId, userName, userPhone);
+                                sessionManager.saveUsername(userUsername);
 
                                 toast("Добро пожаловать, " + userName + "!");
                                 goToMainScreen();

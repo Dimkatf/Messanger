@@ -9,6 +9,7 @@ public class SessionManager {
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_USER_NAME = "user_name";
     private static final String KEY_USER_PHONE = "user_phone";
+    private static final String KEY_USER_USERNAME = "user_username";
 
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
@@ -25,9 +26,19 @@ public class SessionManager {
         editor.apply();
     }
 
+    public void saveUsername(String username) {
+        editor.putString(KEY_USER_USERNAME, username);
+        editor.apply();
+    }
+
+    public String getUsername() {
+        return pref.getString(KEY_USER_USERNAME, "");
+    }
+
     public Long getUserId() {
         return pref.getLong(KEY_USER_ID, -1);
     }
+
     public String getUserIdString() {
         return String.valueOf(pref.getLong(KEY_USER_ID, -1));
     }
