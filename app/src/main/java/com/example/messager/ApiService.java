@@ -75,6 +75,9 @@ public interface ApiService {
     @PUT("api/add_userName")
     Call<ApiResponse> addUserName(@Body AddUserName request);
 
+    @GET("api/findUserByUserName")
+    Call<User> findUserByUsername(@Query("userName") String userName);
+
 }
 
 

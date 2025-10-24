@@ -21,7 +21,26 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     private Context context;
     private ApiService apiService;
     private SessionManager sessionManager;
+    private OnChatClickListener onChatClickListener;
+    private OnChatLongClickListener onChatLongClickListener;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
+
+    // Интерфейсы для кликов
+    public interface OnChatClickListener {
+        void onChatClick(Chat chat);
+    }
+
+    public interface OnChatLongClickListener {
+        void onChatLongClick(Chat chat, int position);
+    }
+
+    public void setOnChatClickListener(OnChatClickListener listener) {
+        this.onChatClickListener = listener;
+    }
+
+    public void setOnChatLongClickListener(OnChatLongClickListener listener) {
+        this.onChatLongClickListener = listener;
+    }
 
     public ChatAdapter(List<Chat> chatList, Context context) {
         this.chatList = chatList;
@@ -60,17 +79,20 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             holder.lastMessage.setText("Нет сообщений");
         }
 
+        // Обычный клик
         holder.itemView.setOnClickListener(v -> {
-            if (chat.getName().equals("Избранное")) {
-                if (sessionManager.isLoggedIn()) {
-                    android.content.Intent intent = new android.content.Intent(context, FavoritesScreen.class);
-                    context.startActivity(intent);
-                } else {
-                    Toast.makeText(context, "Пожалуйста, войдите в систему", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                Toast.makeText(context, "Чат: " + chat.getName(), Toast.LENGTH_SHORT).show();
+            if (onChatClickListener != null) {
+                onChatClickListener.onChatClick(chat);
             }
+        });
+
+        // Долгое нажатие
+        holder.itemView.setOnLongClickListener(v -> {
+            if (onChatLongClickListener != null) {
+                onChatLongClickListener.onChatLongClick(chat, position);
+                return true;
+            }
+            return false;
         });
     }
 
@@ -79,17 +101,34 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return chatList.size();
     }
 
+    public void addChat(int position, Chat chat) {
+        chatList.add(position, chat);
+        notifyItemInserted(position);
+    }
+
+    public void removeChat(int position) {
+        // Не удаляем "Избранное" (первый элемент)
+        if (position == 0) {
+            Toast.makeText(context, "Нельзя удалить Избранное", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        chatList.remove(position);
+        notifyItemRemoved(position);
+    }
+
     public void updateFavoritesLastMessage(String newMessage, String timestamp) {
         for (int i = 0; i < chatList.size(); i++) {
             Chat chat = chatList.get(i);
             if (chat.getName().equals("Избранное")) {
-
                 chat.setLastMessage(newMessage);
 
                 if (timestamp != null && !timestamp.isEmpty() && !"Нет сообщений".equals(newMessage)) {
                     String formattedTime = formatTime(timestamp);
                     chat.setTime(formattedTime);
-                } else chat.setTime("");
+                } else {
+                    chat.setTime("");
+                }
 
                 notifyItemChanged(i);
                 break;

@@ -1,8 +1,12 @@
 package com.example.messager;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -25,6 +29,8 @@ public class Chats extends AppCompatActivity {
     public ChatAdapter chatAdapter;
     private ApiService apiService;
     private SessionManager sessionManager;
+    private EditText searchEditText;
+    private Button searchButton;
     private static final String BASE_URL = "http://192.168.1.36:8080/";
 
     @Override
@@ -47,6 +53,10 @@ public class Chats extends AppCompatActivity {
                 .build();
         apiService = retrofit.create(ApiService.class);
 
+        searchEditText = findViewById(R.id.searchEditText);
+        searchButton = findViewById(R.id.searchButton);
+        searchButton.setOnClickListener(v -> searchUser());
+
         profileBtn = findViewById(R.id.profile);
         profileBtn.setOnClickListener(v -> {
             Intent intent = new Intent(this, MainScreen.class);
@@ -62,9 +72,49 @@ public class Chats extends AppCompatActivity {
         chatList.add(new Chat("Ярик", "Че, идем бухать?", "10:11", false));
 
         chatAdapter = new ChatAdapter(chatList, this);
+
+        setupClickListeners();
+
         chatsRecyclerView.setAdapter(chatAdapter);
 
         loadLastMessageForFavorites();
+    }
+
+    private void setupClickListeners() {
+        chatAdapter.setOnChatClickListener(chat -> {
+            if (chat.getName().equals("Избранное")) {
+                if (sessionManager.isLoggedIn()) {
+                    Intent intent = new Intent(this, FavoritesScreen.class);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(this, "Пожалуйста, войдите в систему", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Открываем чат с " + chat.getName(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        chatAdapter.setOnChatLongClickListener((chat, position) -> {
+            showDeleteDialog(chat, position);
+        });
+    }
+
+    private void showDeleteDialog(Chat chat, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Удалить чат")
+                .setMessage("Вы уверены, что хотите удалить чат с " + chat.getName() + "?")
+                .setPositiveButton("Удалить", (dialog, which) -> {
+                    deleteChat(chat, position);
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void deleteChat(Chat chat, int position) {
+        chatAdapter.removeChat(position);
+        Toast.makeText(this, "Чат с " + chat.getName() + " удален", Toast.LENGTH_SHORT).show();
+
+        // deleteChatFromServer(chat);
     }
 
     @Override
@@ -78,6 +128,58 @@ public class Chats extends AppCompatActivity {
             chatAdapter.updateFavoritesLastMessage(newMessage, timestamp);
         }
     }
+
+    private void searchUser() {
+        String username = searchEditText.getText().toString().trim();
+        if (username.isEmpty()) {
+            Toast.makeText(this, "Введите имя пользователя", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Call<User> call = apiService.findUserByUsername(username);
+        call.enqueue(new Callback<User>() {
+            @Override
+            public void onResponse(Call<User> call, Response<User> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    User foundUser = response.body();
+                    showFoundUserAsChat(foundUser);
+                    searchEditText.setText("");
+                } else {
+                    Toast.makeText(Chats.this, "Пользователь не найден", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<User> call, Throwable t) {
+                Toast.makeText(Chats.this, "Ошибка поиска: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showFoundUserAsChat(User user) {
+        Chat userChat = new Chat(
+                user.getUserName(),
+                "Нажмите чтобы начать чат",
+                "сейчас",
+                false
+        );
+
+        chatAdapter.addChat(1, userChat);
+
+        // chatAdapter.setOnChatClickListener(chat -> {
+        //     if (chat.getChatName().equals(user.getUserName())) {
+        //         createNewChatWithUser(user);
+        //     }
+        // });
+    }
+
+    // private void createNewChatWithUser(User user) {
+    //     Toast.makeText(this, "Создаем чат с " + user.getUserName(), Toast.LENGTH_SHORT).show();
+    //     Intent intent = new Intent(this, ChatActivity.class);
+    //     intent.putExtra("user_id", user.getId());
+    //     intent.putExtra("user_name", user.getUserName());
+    //     startActivity(intent);
+    // }
 
     private void loadLastMessageForFavorites() {
         String userId = sessionManager.getUserIdString();
