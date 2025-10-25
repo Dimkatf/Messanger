@@ -1,4 +1,11 @@
-package com.example.messager;
+package com.example.messager.API;
+
+import com.example.messager.Messages.Chat;
+import com.example.messager.Messages.ChatDTO;
+import com.example.messager.Messages.ChatMessage;
+import com.example.messager.Messages.UpdateMessageRequest;
+import com.example.messager.Users.AddUserName;
+import com.example.messager.Users.User;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +22,7 @@ import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Part;
+import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 public interface ApiService {
@@ -62,8 +70,8 @@ public interface ApiService {
     @POST("api/send-message")
     Call<ApiResponse> sendMessage(@Body Map<String, String> request);
 
-    @GET("api/get-last-message")
-    Call<Map<String, String>> getLastMessage(@Query("chatId") String chatId);
+//    @GET("api/get-last-message")
+//    Call<Map<String, String>> getLastMessage(@Query("chatId") String chatId);
 
     @DELETE("api/delete-message")
     Call<ApiResponse> deleteMessage(@Query("messageId") Long messageId);
@@ -77,6 +85,18 @@ public interface ApiService {
 
     @GET("api/findUserByUserName")
     Call<User> findUserByUsername(@Query("userName") String userName);
+
+    @POST("api/chats/create")
+    Call<Chat> createChat(@Query("user1Id") Long user1Id, @Query("user2Id") Long user2Id);
+
+    @GET("api/chats/user/{userId}")
+    Call<List<ChatDTO>> getUserChats(@Path("userId") Long userId); // Измени на ChatDTO
+
+    @DELETE("api/chats/{chatId}")
+    Call<String> deleteChat(@Path("chatId") Long chatId);
+
+    @GET("api/last_message")
+    Call<Map<String, String>> getLastMessage(@Query("chatId") String chatId);
 
 }
 

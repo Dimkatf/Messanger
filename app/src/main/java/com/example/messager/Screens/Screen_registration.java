@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Screens;
 
 import android.os.Bundle;
 import android.widget.Button;
@@ -10,6 +10,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.example.messager.API.ApiClient;
+import com.example.messager.API.ApiService;
+import com.example.messager.R;
 
 import org.json.JSONObject;
 

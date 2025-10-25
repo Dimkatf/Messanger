@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.API;
 
 import com.google.gson.annotations.SerializedName;
 

@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Messages;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -8,6 +8,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.messager.API.ApiService;
+import com.example.messager.R;
+import com.example.messager.API.SessionManager;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;

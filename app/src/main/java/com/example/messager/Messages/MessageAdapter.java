@@ -1,8 +1,7 @@
-package com.example.messager;
+package com.example.messager.Messages;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +17,10 @@ import java.util.List;
 import java.util.Locale;
 
 import android.widget.Toast;
+
+import com.example.messager.API.ApiService;
+import com.example.messager.Screens.FavoritesScreen;
+import com.example.messager.R;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;

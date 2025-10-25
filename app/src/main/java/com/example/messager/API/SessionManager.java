@@ -1,5 +1,5 @@
 // SessionManager.java
-package com.example.messager;
+package com.example.messager.API;
 
 import android.content.Context;
 import android.content.SharedPreferences;

@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Users;
 
 public class AddUserName {
     private String phone;

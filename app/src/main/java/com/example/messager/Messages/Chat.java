@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Messages;
 
 public class Chat {
     private String name;

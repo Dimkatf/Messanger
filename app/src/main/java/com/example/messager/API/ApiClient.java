@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.API;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.scalars.ScalarsConverterFactory;

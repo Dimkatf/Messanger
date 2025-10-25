@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Messages;
 
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -14,6 +14,14 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.messager.API.ApiService;
+import com.example.messager.Screens.FavoritesScreen;
+import com.example.messager.Screens.MainScreen;
+import com.example.messager.R;
+import com.example.messager.API.SessionManager;
+import com.example.messager.Users.User;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -22,6 +30,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 
 public class Chats extends AppCompatActivity {
     private Button profileBtn;
@@ -69,14 +78,12 @@ public class Chats extends AppCompatActivity {
 
         List<Chat> chatList = new ArrayList<>();
         chatList.add(new Chat("Избранное", "Загрузка...", "", true));
-        chatList.add(new Chat("Ярик", "Че, идем бухать?", "10:11", false));
 
         chatAdapter = new ChatAdapter(chatList, this);
-
         setupClickListeners();
-
         chatsRecyclerView.setAdapter(chatAdapter);
 
+        loadUserChatsFromServer();
         loadLastMessageForFavorites();
     }
 
@@ -100,6 +107,11 @@ public class Chats extends AppCompatActivity {
     }
 
     private void showDeleteDialog(Chat chat, int position) {
+        if (chat.getName().equals("Избранное")) {
+            Toast.makeText(this, "Нельзя удалить Избранное", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Удалить чат")
                 .setMessage("Вы уверены, что хотите удалить чат с " + chat.getName() + "?")
@@ -113,8 +125,6 @@ public class Chats extends AppCompatActivity {
     private void deleteChat(Chat chat, int position) {
         chatAdapter.removeChat(position);
         Toast.makeText(this, "Чат с " + chat.getName() + " удален", Toast.LENGTH_SHORT).show();
-
-        // deleteChatFromServer(chat);
     }
 
     @Override
@@ -136,13 +146,19 @@ public class Chats extends AppCompatActivity {
             return;
         }
 
+        if (isChatAlreadyExists(username)) {
+            Toast.makeText(this, "Чат с пользователем " + username + " уже существует", Toast.LENGTH_SHORT).show();
+            searchEditText.setText("");
+            return;
+        }
+
         Call<User> call = apiService.findUserByUsername(username);
         call.enqueue(new Callback<User>() {
             @Override
             public void onResponse(Call<User> call, Response<User> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     User foundUser = response.body();
-                    showFoundUserAsChat(foundUser);
+                    createChatOnServer(foundUser);
                     searchEditText.setText("");
                 } else {
                     Toast.makeText(Chats.this, "Пользователь не найден", Toast.LENGTH_SHORT).show();
@@ -156,79 +172,133 @@ public class Chats extends AppCompatActivity {
         });
     }
 
-    private void showFoundUserAsChat(User user) {
-        Chat userChat = new Chat(
-                user.getUserName(),
-                "Нажмите чтобы начать чат",
-                "сейчас",
-                false
-        );
-
-        chatAdapter.addChat(1, userChat);
-
-        // chatAdapter.setOnChatClickListener(chat -> {
-        //     if (chat.getChatName().equals(user.getUserName())) {
-        //         createNewChatWithUser(user);
-        //     }
-        // });
+    private boolean isChatAlreadyExists(String username) {
+        for (Chat chat : chatAdapter.chatList) {
+            if (chat.getName().equals(username)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    // private void createNewChatWithUser(User user) {
-    //     Toast.makeText(this, "Создаем чат с " + user.getUserName(), Toast.LENGTH_SHORT).show();
-    //     Intent intent = new Intent(this, ChatActivity.class);
-    //     intent.putExtra("user_id", user.getId());
-    //     intent.putExtra("user_name", user.getUserName());
-    //     startActivity(intent);
-    // }
+    private void createChatOnServer(User foundUser) {
+        String currentUserId = sessionManager.getUserIdString();
+        if (currentUserId == null || currentUserId.equals("-1")) {
+            Toast.makeText(this, "Войдите в систему для создания чата", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Call<Chat> call = apiService.createChat(Long.parseLong(currentUserId), foundUser.getId());
+        call.enqueue(new Callback<Chat>() {
+            @Override
+            public void onResponse(Call<Chat> call, Response<Chat> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    loadUserChatsFromServer();
+                    Toast.makeText(Chats.this, "Чат с " + foundUser.getUserName() + " создан", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(Chats.this, "Ошибка создания чата на сервере", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Chat> call, Throwable t) {
+                Toast.makeText(Chats.this, "Ошибка сети при создании чата: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadUserChatsFromServer() {
+        String userId = sessionManager.getUserIdString();
+        if (userId == null || userId.equals("-1")) return;
+
+        Call<List<ChatDTO>> call = apiService.getUserChats(Long.valueOf(userId)); // Теперь ChatDTO
+        call.enqueue(new Callback<List<ChatDTO>>() {
+            @Override
+            public void onResponse(Call<List<ChatDTO>> call, Response<List<ChatDTO>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<ChatDTO> serverChats = response.body();
+                    updateChatsListFromServer(serverChats);
+                    System.out.println("✅ Загружено " + serverChats.size() + " чатов с сервера");
+                } else {
+                    System.out.println("❌ Ошибка загрузки чатов: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<ChatDTO>> call, Throwable t) {
+                System.out.println("❌ Ошибка сети: " + t.getMessage());
+            }
+        });
+    }
+
+    private void updateChatsListFromServer(List<ChatDTO> serverChats) {
+        List<Chat> newChatList = new ArrayList<>();
+        newChatList.add(new Chat("Избранное", "Загрузка...", "", true));
+
+        for (ChatDTO serverChat : serverChats) {
+            String otherUserName = getOtherUserNameFromServerChat(serverChat);
+            String lastMessage = serverChat.getLastMessage() != null ? serverChat.getLastMessage() : "Нет сообщений";
+            String time = serverChat.getLastMessageTime() != null ? formatServerTime(serverChat.getLastMessageTime()) : "";
+
+            Chat androidChat = new Chat(otherUserName, lastMessage, time, false);
+            newChatList.add(androidChat);
+        }
+
+        chatAdapter = new ChatAdapter(newChatList, this);
+        setupClickListeners();
+        chatsRecyclerView.setAdapter(chatAdapter);
+    }
+
+    private String getOtherUserNameFromServerChat(ChatDTO serverChat) {
+        String currentUserId = sessionManager.getUserIdString();
+        if (currentUserId == null) return "Unknown";
+
+        Long currentId = Long.valueOf(currentUserId);
+
+        if (serverChat.getUser1Id().equals(currentId)) {
+            return serverChat.getUser2Name();
+        } else {
+            return serverChat.getUser1Name();
+        }
+    }
+
+    private String formatServerTime(String serverTime) {
+        if (serverTime == null || serverTime.isEmpty()) return "";
+        try {
+            return serverTime.substring(11, 16); // "2024-01-25T15:30:00" -> "15:30"
+        } catch (Exception e) {
+            return "";
+        }
+    }
 
     private void loadLastMessageForFavorites() {
         String userId = sessionManager.getUserIdString();
         if (userId == null || userId.equals("-1")) {
-            System.out.println("❌ User not logged in");
             updateFavoritesLastMessage("Войдите в систему", "");
             return;
         }
 
         String chatId = "favorites_" + userId;
-        System.out.println("📱 Loading last message for: " + chatId);
-
         Call<Map<String, String>> call = apiService.getLastMessage(chatId);
         call.enqueue(new Callback<Map<String, String>>() {
             @Override
             public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
-                System.out.println("📱 Response code: " + response.code());
-
                 if (response.isSuccessful() && response.body() != null) {
                     Map<String, String> apiResponse = response.body();
-                    System.out.println("📱 Server response: " + apiResponse);
-
                     if ("success".equals(apiResponse.get("status"))) {
                         String text = apiResponse.get("message");
                         String timestamp = apiResponse.get("timestamp");
-
-                        System.out.println("📱 Last message: " + text);
-                        System.out.println("📱 Timestamp: " + timestamp);
-
                         updateFavoritesLastMessage(text, timestamp);
                     } else {
-                        System.out.println("❌ Server returned error status");
                         updateFavoritesLastMessage("Нет сообщений", "");
                     }
                 } else {
-                    System.out.println("❌ Response not successful");
-                    try {
-                        String errorBody = response.errorBody() != null ? response.errorBody().string() : "null";
-                        System.out.println("❌ Error body: " + errorBody);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
                     updateFavoritesLastMessage("Ошибка загрузки", "");
                 }
             }
 
             @Override
             public void onFailure(Call<Map<String, String>> call, Throwable t) {
-                System.out.println("❌ Network error: " + t.getMessage());
                 updateFavoritesLastMessage("Ошибка сети", "");
             }
         });

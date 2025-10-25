@@ -1,4 +1,4 @@
-package com.example.messager;
+package com.example.messager.Users;
 
 public class User {
     private Long id;
